@@ -72,28 +72,52 @@ function colorToBg(hex){ return `rgba(${hexToRgb(hex)},0.15)`; }
 async function storageSave(key,value){ try{ await window.storage.set(key,JSON.stringify(value)); }catch(e){} }
 async function storageLoad(key){ try{ const r=await window.storage.get(key); return r?JSON.parse(r.value):null; }catch(e){ return null; } }
 
+// ── Settings Modal ────────────────────────────────────────────────────────────
 function SettingsModal({ theme, grade, birthdate, currentAge, onSaveTheme, onSaveGrade, onSaveBirthdate, onClose }) {
   const [t, setT] = useState(theme);
   const [gr, setGr] = useState(grade);
   const [bd, setBd] = useState(birthdate);
-  const [tab, setTab] = useState("profile");
-  function applyPreset(preset) { setT(prev => ({ ...prev, ...preset, font: prev.font, preset: preset.id })); }
-  function save() { onSaveTheme(t); onSaveGrade(gr); onSaveBirthdate(bd); onClose(); }
+  const [tab, setTab] = useState("profile"); // "profile" | "theme"
+
+  function applyPreset(preset) {
+    setT(prev => ({ ...prev, ...preset, font: prev.font, preset: preset.id }));
+  }
+  function save() {
+    onSaveTheme(t);
+    onSaveGrade(gr);
+    onSaveBirthdate(bd);
+    onClose();
+  }
+
   const age = calcAge(bd);
   const fontStyle = FONTS.find(f=>f.id===t.font)?.style || FONTS[0].style;
+  const swatch = (color, active, onClick) => (
+    <button onClick={onClick} style={{ width:28, height:28, borderRadius:"50%", background:color, border: active?"3px solid #fff":"2px solid transparent", cursor:"pointer", flexShrink:0 }}/>
+  );
+
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}>
       <div style={{ background: t.calBg, border:`1px solid ${t.border}`, borderRadius:18, width:400, maxHeight:"88vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,0.7)", fontFamily: fontStyle, color: t.text }}>
+
+        {/* Modal Header */}
         <div style={{ background: t.headerBg, padding:"18px 22px", borderRadius:"18px 18px 0 0", borderBottom:`1px solid ${t.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <h2 style={{ margin:0, fontSize:18, fontWeight:700 }}>⚙️ 설정</h2>
           <button onClick={onClose} style={{ background:"none", border:"none", color:t.sub, fontSize:20, cursor:"pointer" }}>✕</button>
         </div>
+
+        {/* Tabs */}
         <div style={{ display:"flex", borderBottom:`1px solid ${t.border}` }}>
           {[["profile","👤 프로필"],["theme","🎨 디자인"]].map(([id,label])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{ flex:1, padding:"12px", background: tab===id ? t.bg : "transparent", border:"none", borderBottom: tab===id ? `2px solid ${t.accent}` : "2px solid transparent", color: tab===id ? t.text : t.sub, fontSize:13, fontWeight: tab===id?700:400, cursor:"pointer" }}>{label}</button>
+            <button key={id} onClick={()=>setTab(id)}
+              style={{ flex:1, padding:"12px", background: tab===id ? t.bg : "transparent", border:"none", borderBottom: tab===id ? `2px solid ${t.accent}` : "2px solid transparent", color: tab===id ? t.text : t.sub, fontSize:13, fontWeight: tab===id?700:400, cursor:"pointer" }}>
+              {label}
+            </button>
           ))}
         </div>
+
         <div style={{ padding:"20px 22px" }}>
+
+          {/* ── Profile Tab ── */}
           {tab==="profile" && (
             <>
               <div style={{ marginBottom:16 }}>
@@ -105,72 +129,99 @@ function SettingsModal({ theme, grade, birthdate, currentAge, onSaveTheme, onSav
               </div>
               <div style={{ marginBottom:8 }}>
                 <label style={{ display:"block", fontSize:12, color:t.sub, marginBottom:6 }}>생년월일</label>
-                <input type="date" value={bd} onChange={e=>setBd(e.target.value)} max={new Date().toISOString().split("T")[0]} style={{ width:"100%", padding:"10px 12px", background:t.bg, border:`1px solid ${t.border}`, borderRadius:8, color:t.text, fontSize:14, boxSizing:"border-box" }}/>
+                <input type="date" value={bd} onChange={e=>setBd(e.target.value)} max={new Date().toISOString().split("T")[0]}
+                  style={{ width:"100%", padding:"10px 12px", background:t.bg, border:`1px solid ${t.border}`, borderRadius:8, color:t.text, fontSize:14, boxSizing:"border-box" }}/>
                 {bd && age!==null && <p style={{ margin:"6px 0 0", fontSize:12, color:t.accent }}>→ 현재 {age}세</p>}
               </div>
             </>
           )}
+
+          {/* ── Theme Tab ── */}
           {tab==="theme" && (
             <>
+              {/* Preset chips */}
               <div style={{ marginBottom:20 }}>
                 <div style={{ fontSize:12, color:t.sub, marginBottom:10, fontWeight:600 }}>테마 프리셋</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
                   {THEME_PRESETS.map(p=>(
-                    <button key={p.id} onClick={()=>applyPreset(p)} style={{ padding:"10px 6px", borderRadius:10, border: t.preset===p.id ? `2px solid ${t.accent}` : `1px solid ${t.border}`, background: p.bg, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
+                    <button key={p.id} onClick={()=>applyPreset(p)}
+                      style={{ padding:"10px 6px", borderRadius:10, border: t.preset===p.id ? `2px solid ${t.accent}` : `1px solid ${t.border}`, background: p.bg, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
                       <div style={{ width:"100%", height:20, borderRadius:5, background:p.calBg, border:`1px solid ${p.border}` }}/>
                       <span style={{ fontSize:11, color:p.text, fontWeight:600, whiteSpace:"nowrap" }}>{p.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Custom BG */}
               <div style={{ marginBottom:18 }}>
                 <div style={{ fontSize:12, color:t.sub, marginBottom:8, fontWeight:600 }}>배경색 커스텀</div>
                 <div style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:t.bg, borderRadius:10, border:`1px solid ${t.border}` }}>
                   <div style={{ width:36, height:36, borderRadius:8, background:t.bg, border:`2px solid ${t.border}` }}/>
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:11, color:t.sub, marginBottom:4 }}>배경색</div>
-                    <input type="color" value={t.bg} onChange={e=>setT(prev=>({...prev,bg:e.target.value,preset:"custom"}))} style={{ width:"100%", height:28, padding:0, border:"none", borderRadius:6, cursor:"pointer", background:"transparent" }}/>
+                    <input type="color" value={t.bg} onChange={e=>setT(prev=>({...prev,bg:e.target.value,preset:"custom"}))}
+                      style={{ width:"100%", height:28, padding:0, border:"none", borderRadius:6, cursor:"pointer", background:"transparent" }}/>
                   </div>
                   <div style={{ width:36, height:36, borderRadius:8, background:t.calBg, border:`2px solid ${t.border}` }}/>
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:11, color:t.sub, marginBottom:4 }}>달력 배경</div>
-                    <input type="color" value={t.calBg} onChange={e=>setT(prev=>({...prev,calBg:e.target.value,preset:"custom"}))} style={{ width:"100%", height:28, padding:0, border:"none", borderRadius:6, cursor:"pointer", background:"transparent" }}/>
+                    <input type="color" value={t.calBg} onChange={e=>setT(prev=>({...prev,calBg:e.target.value,preset:"custom"}))}
+                      style={{ width:"100%", height:28, padding:0, border:"none", borderRadius:6, cursor:"pointer", background:"transparent" }}/>
                   </div>
                 </div>
               </div>
+
+              {/* Accent color */}
               <div style={{ marginBottom:18 }}>
                 <div style={{ fontSize:12, color:t.sub, marginBottom:8, fontWeight:600 }}>포인트 색상</div>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                   {["#667eea","#e74c3c","#e67e22","#27ae60","#1abc9c","#2980b9","#9b59b6","#e91e8c","#f1c40f","#34495e"].map(c=>(
-                    <button key={c} onClick={()=>setT(prev=>({...prev,accent:c,preset:"custom"}))} style={{ width:30, height:30, borderRadius:"50%", background:c, border: t.accent===c?"3px solid #fff":"2px solid transparent", cursor:"pointer" }}/>
+                    <button key={c} onClick={()=>setT(prev=>({...prev,accent:c,preset:"custom"}))}
+                      style={{ width:30, height:30, borderRadius:"50%", background:c, border: t.accent===c?"3px solid #fff":"2px solid transparent", cursor:"pointer" }}/>
                   ))}
                 </div>
               </div>
+
+              {/* Font */}
               <div style={{ marginBottom:8 }}>
                 <div style={{ fontSize:12, color:t.sub, marginBottom:8, fontWeight:600 }}>폰트</div>
                 <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                   {FONTS.map(f=>(
-                    <button key={f.id} onClick={()=>setT(prev=>({...prev,font:f.id}))} style={{ padding:"10px 14px", borderRadius:8, border: t.font===f.id ? `2px solid ${t.accent}` : `1px solid ${t.border}`, background: t.font===f.id ? `rgba(${hexToRgb(t.accent)},0.12)` : t.bg, cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <button key={f.id} onClick={()=>setT(prev=>({...prev,font:f.id}))}
+                      style={{ padding:"10px 14px", borderRadius:8, border: t.font===f.id ? `2px solid ${t.accent}` : `1px solid ${t.border}`, background: t.font===f.id ? `rgba(${hexToRgb(t.accent)},0.12)` : t.bg, cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <span style={{ fontFamily:f.style, fontSize:14, color:t.text }}>{f.label}</span>
                       <span style={{ fontFamily:f.style, fontSize:12, color:t.sub }}>ABC abc 123</span>
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{ marginTop:16, padding:"12px 14px", background:t.bg, borderRadius:10, border:`1px solid ${t.border}` }}>
-                <div style={{ fontSize:11, color:t.sub, marginBottom:6 }}>미리보기</div>
-                <div style={{ fontFamily: FONTS.find(f=>f.id===t.font)?.style, color:t.text, fontSize:14, fontWeight:700, marginBottom:3 }}>🎓 대입 준비 달력</div>
-                <div style={{ fontFamily: FONTS.find(f=>f.id===t.font)?.style, color:t.sub, fontSize:12 }}>10학년 · 2010년 3월 15일 생</div>
-              </div>
             </>
           )}
-          <button onClick={save} style={{ width:"100%", marginTop:18, padding:"12px", background:`linear-gradient(135deg,${t.accent},${t.accent}cc)`, border:"none", borderRadius:10, color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" }}>저장하기</button>
+
+          {/* Preview strip */}
+          {tab==="theme" && (
+            <div style={{ marginTop:16, padding:"12px 14px", background:t.bg, borderRadius:10, border:`1px solid ${t.border}` }}>
+              <div style={{ fontSize:11, color:t.sub, marginBottom:6 }}>미리보기</div>
+              <div style={{ fontFamily: FONTS.find(f=>f.id===t.font)?.style, color:t.text, fontSize:14, fontWeight:700, marginBottom:3 }}>🎓 {t.preset==="custom"?"커스텀 테마":THEME_PRESETS.find(p=>p.id===t.preset)?.label||"테마"}</div>
+              <div style={{ fontFamily: FONTS.find(f=>f.id===t.font)?.style, color:t.sub, fontSize:12 }}>10학년 · 2010년 3월 15일 생</div>
+              <div style={{ marginTop:8, display:"flex", gap:6 }}>
+                <span style={{ padding:"3px 10px", borderRadius:12, background:`rgba(${hexToRgb(t.accent)},0.2)`, color:t.accent, fontSize:11, fontWeight:600 }}>+ 일정 추가</span>
+                <span style={{ padding:"3px 10px", borderRadius:12, background:t.calBg, border:`1px solid ${t.border}`, color:t.sub, fontSize:11 }}>📐 수학</span>
+              </div>
+            </div>
+          )}
+
+          <button onClick={save} style={{ width:"100%", marginTop:18, padding:"12px", background:`linear-gradient(135deg,${t.accent},${t.accent}cc)`, border:"none", borderRadius:10, color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" }}>
+            저장하기
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+// ── Link Import Modal ─────────────────────────────────────────────────────────
 function LinkImportModal({ categories, theme, onClose, onAdd }) {
   const t = theme;
   const [text,setText]=useState(""); const [loading,setLoading]=useState(false);
@@ -178,13 +229,19 @@ function LinkImportModal({ categories, theme, onClose, onAdd }) {
   const [added,setAdded]=useState(new Set());
   const catList=Object.entries(categories).map(([k,v])=>`"${k}":${v.emoji}${v.label}`).join(",");
   const fontStyle = FONTS.find(f=>f.id===t.font)?.style || FONTS[0].style;
+
   async function analyze(){
     const urls=text.split(/[\n,\s]+/).map(s=>s.trim()).filter(s=>s.startsWith("http"));
     if(!urls.length){setError("http로 시작하는 링크를 입력해주세요.");return;}
     setLoading(true);setError("");setResults(null);
-    const prompt=`You are a competition/program research assistant for a high school student. Analyze these URLs and extract info. For each: name(Korean preferred), dates array [{label(Korean),month,day,year or null}], category key from [${catList}] or "general", desc(Korean ≤40chars). Today:${new Date().toLocaleDateString("en-US")}. Use upcoming year if unspecified. Use END date for ranges. URLs:\n${urls.map((u,i)=>`${i+1}. ${u}`).join("\n")}\nRespond ONLY valid JSON: {"competitions":[{"url":"","name":"","category":"","desc":"","dates":[{"label":"","month":1,"day":1,"year":null}]}]}`;
+    const prompt=`You are a competition/program research assistant for a high school student.
+Analyze these URLs and extract info. For each: name(Korean preferred), dates array [{label(Korean),month,day,year or null}], category key from [${catList}] or "general", desc(Korean ≤40chars).
+Today:${new Date().toLocaleDateString("en-US")}. Use upcoming year if unspecified. Use END date for ranges.
+URLs:\n${urls.map((u,i)=>`${i+1}. ${u}`).join("\n")}
+Respond ONLY valid JSON: {"competitions":[{"url":"","name":"","category":"","desc":"","dates":[{"label":"","month":1,"day":1,"year":null}]}]}`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:prompt}]})});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       const txt=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
       const parsed=JSON.parse(txt.replace(/```json|```/g,"").trim());
@@ -196,6 +253,7 @@ function LinkImportModal({ categories, theme, onClose, onAdd }) {
   function addAll(){ const events=[]; (results||[]).forEach(c=>(c.dates||[]).forEach(d=>events.push({title:`${c.name} — ${d.label}`,category:c.category||"general",desc:c.desc||"",month:d.month,day:d.day,url:c.url}))); onAdd(events);onClose(); }
   const getCat=k=>categories[k]||{emoji:"📌",label:k,border:"#999",bg:"#f0f0f0"};
   const inp={width:"100%",padding:"8px 12px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.text,fontSize:13,boxSizing:"border-box"};
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300}}>
       <div style={{background:t.calBg,border:`1px solid ${t.border}`,borderRadius:16,padding:28,width:460,maxHeight:"88vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,0.7)",fontFamily:fontStyle,color:t.text}}>
@@ -203,52 +261,64 @@ function LinkImportModal({ categories, theme, onClose, onAdd }) {
           <h3 style={{margin:0,fontSize:18,color:t.text}}>🔗 링크로 일정 자동 추가</h3>
           <button onClick={onClose} style={{background:"none",border:"none",color:t.sub,fontSize:20,cursor:"pointer"}}>✕</button>
         </div>
-        {!results?(<>
-          <p style={{margin:"0 0 12px",fontSize:13,color:t.sub,lineHeight:1.6}}>대회/캠프/오디션 링크를 한 줄에 하나씩 붙여넣으세요.<br/>AI가 날짜와 카테고리를 자동으로 분석해드려요.</p>
-          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={"https://www.amc.org/...\nhttps://www.interlochen.org/..."} style={{width:"100%",height:130,padding:"10px 12px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:10,color:t.text,fontSize:13,resize:"vertical",boxSizing:"border-box",fontFamily:"monospace",lineHeight:1.6}}/>
-          {error&&<p style={{color:"#e74c3c",fontSize:12,margin:"8px 0 0"}}>{error}</p>}
-          <div style={{display:"flex",gap:10,marginTop:14}}>
-            <button onClick={onClose} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>취소</button>
-            <button onClick={analyze} disabled={loading||!text.trim()} style={{flex:2,padding:"10px",background:loading||!text.trim()?t.bg:`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:"none",borderRadius:8,color:loading||!text.trim()?t.sub:"#fff",fontWeight:600,cursor:loading||!text.trim()?"default":"pointer",fontSize:14}}>{loading?"🤖 AI 분석 중...":"🔍 분석하기"}</button>
-          </div>
-          {loading&&<div style={{marginTop:14,padding:12,background:t.bg,borderRadius:10,fontSize:12,color:t.sub}}>각 사이트를 방문해 날짜와 정보를 수집하고 있어요...</div>}
-        </>):(<>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-            <p style={{margin:0,fontSize:13,color:t.sub}}>{results.length}개 분석 완료</p>
-            <button onClick={()=>setResults(null)} style={{background:"none",border:"none",color:t.accent,fontSize:12,cursor:"pointer"}}>← 다시 입력</button>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:18}}>
-            {results.map((comp,ci)=>{ const cat=getCat(comp.category); return(
-              <div key={ci} style={{background:t.bg,borderRadius:12,padding:14,border:`1.5px solid ${cat.border}`}}>
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
-                  <div><div style={{fontSize:14,fontWeight:700,color:t.text,marginBottom:3}}>{cat.emoji} {comp.name}</div><div style={{fontSize:11,color:t.sub}}>{comp.desc}</div></div>
-                  <span style={{padding:"3px 8px",borderRadius:10,background:cat.bg,color:"#1a1a2e",fontSize:11,fontWeight:600,whiteSpace:"nowrap",border:`1px solid ${cat.border}`}}>{cat.label}</span>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                  {(comp.dates||[]).map((d,di)=>{ const key=`${comp.url}__${d.month}__${d.day}`;const isAdded=added.has(key); return(
-                    <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:t.calBg,borderRadius:8}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{fontSize:12,fontWeight:700,color:t.accent,minWidth:54}}>{d.month}월 {d.day}일</span>
-                        <span style={{fontSize:12,color:t.text}}>{d.label}</span>
-                        {d.year&&<span style={{fontSize:10,color:t.sub}}>{d.year}</span>}
-                      </div>
-                      <button onClick={()=>addSingle(comp,d)} style={{padding:"4px 12px",background:isAdded?"transparent":`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:isAdded?`1px solid #27ae60`:"none",borderRadius:6,color:isAdded?"#27ae60":"#fff",fontSize:11,fontWeight:600,cursor:isAdded?"default":"pointer",minWidth:60}}>{isAdded?"✓ 추가됨":"+ 추가"}</button>
+        {!results?(
+          <>
+            <p style={{margin:"0 0 12px",fontSize:13,color:t.sub,lineHeight:1.6}}>대회/캠프/오디션 링크를 한 줄에 하나씩 붙여넣으세요.<br/>AI가 날짜와 카테고리를 자동으로 분석해드려요.</p>
+            <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={"https://www.amc.org/...\nhttps://www.interlochen.org/..."} style={{width:"100%",height:130,padding:"10px 12px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:10,color:t.text,fontSize:13,resize:"vertical",boxSizing:"border-box",fontFamily:"monospace",lineHeight:1.6}}/>
+            {error&&<p style={{color:"#e74c3c",fontSize:12,margin:"8px 0 0"}}>{error}</p>}
+            <div style={{display:"flex",gap:10,marginTop:14}}>
+              <button onClick={onClose} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>취소</button>
+              <button onClick={analyze} disabled={loading||!text.trim()} style={{flex:2,padding:"10px",background:loading||!text.trim()?t.bg:`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:"none",borderRadius:8,color:loading||!text.trim()?t.sub:"#fff",fontWeight:600,cursor:loading||!text.trim()?"default":"pointer",fontSize:14}}>
+                {loading?"🤖 AI 분석 중...":"🔍 분석하기"}
+              </button>
+            </div>
+            {loading&&<div style={{marginTop:14,padding:12,background:t.bg,borderRadius:10,fontSize:12,color:t.sub}}>각 사이트를 방문해 날짜와 정보를 수집하고 있어요...</div>}
+          </>
+        ):(
+          <>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <p style={{margin:0,fontSize:13,color:t.sub}}>{results.length}개 분석 완료</p>
+              <button onClick={()=>setResults(null)} style={{background:"none",border:"none",color:t.accent,fontSize:12,cursor:"pointer"}}>← 다시 입력</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:18}}>
+              {results.map((comp,ci)=>{
+                const cat=getCat(comp.category);
+                return(
+                  <div key={ci} style={{background:t.bg,borderRadius:12,padding:14,border:`1.5px solid ${cat.border}`}}>
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
+                      <div><div style={{fontSize:14,fontWeight:700,color:t.text,marginBottom:3}}>{cat.emoji} {comp.name}</div><div style={{fontSize:11,color:t.sub}}>{comp.desc}</div></div>
+                      <span style={{padding:"3px 8px",borderRadius:10,background:cat.bg,color:"#1a1a2e",fontSize:11,fontWeight:600,whiteSpace:"nowrap",border:`1px solid ${cat.border}`}}>{cat.label}</span>
                     </div>
-                  ); })}
-                </div>
-              </div>
-            ); })}
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={onClose} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>닫기</button>
-            <button onClick={addAll} style={{flex:2,padding:"10px",background:`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:"none",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer"}}>📅 전체 달력에 추가</button>
-          </div>
-        </>)}
+                    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                      {(comp.dates||[]).map((d,di)=>{ const key=`${comp.url}__${d.month}__${d.day}`;const isAdded=added.has(key); return(
+                        <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:t.calBg,borderRadius:8}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontSize:12,fontWeight:700,color:t.accent,minWidth:54}}>{d.month}월 {d.day}일</span>
+                            <span style={{fontSize:12,color:t.text}}>{d.label}</span>
+                            {d.year&&<span style={{fontSize:10,color:t.sub}}>{d.year}</span>}
+                          </div>
+                          <button onClick={()=>addSingle(comp,d)} style={{padding:"4px 12px",background:isAdded?"transparent":`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:isAdded?`1px solid #27ae60`:"none",borderRadius:6,color:isAdded?"#27ae60":"#fff",fontSize:11,fontWeight:600,cursor:isAdded?"default":"pointer",minWidth:60}}>
+                            {isAdded?"✓ 추가됨":"+ 추가"}
+                          </button>
+                        </div>
+                      ); })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={onClose} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>닫기</button>
+              <button onClick={addAll} style={{flex:2,padding:"10px",background:`linear-gradient(135deg,${t.accent},${t.accent}cc)`,border:"none",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer"}}>📅 전체 달력에 추가</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// ── Category Modal ────────────────────────────────────────────────────────────
 function CategoryModal({ categories, theme, onClose, onSave }) {
   const t = theme;
   const fontStyle = FONTS.find(f=>f.id===t.font)?.style || FONTS[0].style;
@@ -270,18 +340,22 @@ function CategoryModal({ categories, theme, onClose, onSave }) {
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
           {cats.map((cat,idx)=>(
             <div key={cat.key} style={{background:t.bg,borderRadius:10,padding:"10px 12px",border:`1.5px solid ${cat.border}`}}>
-              {editIdx===idx?(<div style={{display:"flex",flexDirection:"column",gap:8}}>
-                <div><div style={{fontSize:11,color:t.sub,marginBottom:3}}>이름</div><input value={cat.label} onChange={e=>updateCat(idx,"label",e.target.value)} style={inp}/></div>
-                <div><div style={{fontSize:11,color:t.sub,marginBottom:5}}>이모지</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{EMOJIS.map(em=><button key={em} onClick={()=>updateCat(idx,"emoji",em)} style={{width:30,height:30,borderRadius:6,border:cat.emoji===em?`2px solid ${cat.border}`:`1px solid ${t.border}`,background:cat.emoji===em?t.calBg:"transparent",cursor:"pointer",fontSize:15}}>{em}</button>)}</div></div>
-                <div><div style={{fontSize:11,color:t.sub,marginBottom:5}}>색상</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{PALETTE.map(col=><button key={col} onClick={()=>updateCat(idx,"border",col)} style={{width:24,height:24,borderRadius:"50%",background:col,border:cat.border===col?"2px solid #fff":"2px solid transparent",cursor:"pointer"}}/>)}</div></div>
-                <button onClick={()=>setEditIdx(null)} style={{padding:"6px 14px",background:t.accent,border:"none",borderRadius:7,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",alignSelf:"flex-end"}}>완료</button>
-              </div>):(<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{cat.emoji}</span><span style={{fontSize:14,fontWeight:600}}>{cat.label}</span></div>
-                <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>setEditIdx(idx)} style={{padding:"4px 10px",background:t.calBg,border:`1px solid ${t.border}`,borderRadius:6,color:t.sub,fontSize:11,cursor:"pointer"}}>수정</button>
-                  <button onClick={()=>removeCat(idx)} style={{padding:"4px 10px",background:"transparent",border:"1px solid #e74c3c",borderRadius:6,color:"#e74c3c",fontSize:11,cursor:"pointer"}}>삭제</button>
+              {editIdx===idx?(
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <div><div style={{fontSize:11,color:t.sub,marginBottom:3}}>이름</div><input value={cat.label} onChange={e=>updateCat(idx,"label",e.target.value)} style={inp}/></div>
+                  <div><div style={{fontSize:11,color:t.sub,marginBottom:5}}>이모지</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{EMOJIS.map(em=><button key={em} onClick={()=>updateCat(idx,"emoji",em)} style={{width:30,height:30,borderRadius:6,border:cat.emoji===em?`2px solid ${cat.border}`:`1px solid ${t.border}`,background:cat.emoji===em?t.calBg:"transparent",cursor:"pointer",fontSize:15}}>{em}</button>)}</div></div>
+                  <div><div style={{fontSize:11,color:t.sub,marginBottom:5}}>색상</div><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{PALETTE.map(col=><button key={col} onClick={()=>updateCat(idx,"border",col)} style={{width:24,height:24,borderRadius:"50%",background:col,border:cat.border===col?"2px solid #fff":"2px solid transparent",cursor:"pointer"}}/>)}</div></div>
+                  <button onClick={()=>setEditIdx(null)} style={{padding:"6px 14px",background:t.accent,border:"none",borderRadius:7,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",alignSelf:"flex-end"}}>완료</button>
                 </div>
-              </div>)}
+              ):(
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{cat.emoji}</span><span style={{fontSize:14,fontWeight:600}}>{cat.label}</span></div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>setEditIdx(idx)} style={{padding:"4px 10px",background:t.calBg,border:`1px solid ${t.border}`,borderRadius:6,color:t.sub,fontSize:11,cursor:"pointer"}}>수정</button>
+                    <button onClick={()=>removeCat(idx)} style={{padding:"4px 10px",background:"transparent",border:"1px solid #e74c3c",borderRadius:6,color:"#e74c3c",fontSize:11,cursor:"pointer"}}>삭제</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -301,6 +375,7 @@ function CategoryModal({ categories, theme, onClose, onSave }) {
   );
 }
 
+// ── Volunteer Report Modal ────────────────────────────────────────────────────
 function VolunteerReportModal({ logs, grade, theme, onClose }) {
   const t = theme;
   const fontStyle = FONTS.find(f=>f.id===t.font)?.style || FONTS[0].style;
@@ -316,40 +391,69 @@ function VolunteerReportModal({ logs, grade, theme, onClose }) {
           <button onClick={onClose} style={{background:"none",border:"none",color:t.sub,fontSize:20,cursor:"pointer"}}>✕</button>
         </div>
         <div style={{padding:"18px 22px"}}>
-          {Object.keys(byGradeYear).length>0&&(<div style={{marginBottom:18}}>
-            <h3 style={{margin:"0 0 10px",fontSize:13,color:t.sub}}>📊 학년도별 합산</h3>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {Object.entries(byGradeYear).sort().map(([yr,hrs])=>(<div key={yr} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",background:t.bg,borderRadius:8,border:`1px solid ${t.border}`}}><span style={{fontSize:13,fontWeight:600}}>{yr}</span><span style={{fontSize:14,fontWeight:700,color:"#27ae60"}}>{hrs.toFixed(1)}시간</span></div>))}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"rgba(39,174,96,0.12)",borderRadius:8,border:"1px solid #27ae60"}}><span style={{fontSize:13,color:"#27ae60",fontWeight:700}}>총 합계</span><span style={{fontSize:16,fontWeight:700,color:"#27ae60"}}>{total.toFixed(1)}시간</span></div>
-            </div>
-          </div>)}
-          {Object.keys(byMonth).length===0?(<p style={{color:t.sub,fontSize:14,textAlign:"center",padding:"20px 0"}}>기록된 봉사 활동이 없어요.</p>):(
-            Object.entries(byMonth).sort().map(([ym,entries])=>{ const [y,m]=ym.split("-"); const monthTotal=entries.reduce((s,l)=>s+(l.hours||0),0); return(
-              <div key={ym} style={{marginBottom:16}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}><h4 style={{margin:0,fontSize:13,color:t.accent}}>{y}년 {parseInt(m)}월</h4><span style={{fontSize:13,fontWeight:700}}>{monthTotal.toFixed(1)}시간</span></div>
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {entries.map((l,i)=>(<div key={i} style={{background:t.bg,borderRadius:10,padding:"10px 14px",border:`1px solid ${t.border}`}}>
-                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
-                      <div style={{flex:1}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}><span style={{fontSize:11,color:t.sub}}>{l.date}</span><span style={{fontSize:13,fontWeight:700}}>{l.org}</span></div>{l.desc&&<div style={{fontSize:11,color:t.sub,marginBottom:4}}>{l.desc}</div>}{l.fileName&&<button onClick={()=>setPreviewFile(l)} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:5,padding:"2px 8px",color:t.accent,fontSize:10,cursor:"pointer"}}>📎 {l.fileName}</button>}</div>
-                      <span style={{fontSize:14,fontWeight:700,color:"#27ae60",whiteSpace:"nowrap"}}>{(l.hours||0).toFixed(1)}h</span>
-                    </div>
-                  </div>))}
+          {Object.keys(byGradeYear).length>0&&(
+            <div style={{marginBottom:18}}>
+              <h3 style={{margin:"0 0 10px",fontSize:13,color:t.sub}}>📊 학년도별 합산</h3>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(byGradeYear).sort().map(([yr,hrs])=>(
+                  <div key={yr} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 14px",background:t.bg,borderRadius:8,border:`1px solid ${t.border}`}}>
+                    <span style={{fontSize:13,fontWeight:600}}>{yr}</span>
+                    <span style={{fontSize:14,fontWeight:700,color:"#27ae60"}}>{hrs.toFixed(1)}시간</span>
+                  </div>
+                ))}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"rgba(39,174,96,0.12)",borderRadius:8,border:"1px solid #27ae60"}}>
+                  <span style={{fontSize:13,color:"#27ae60",fontWeight:700}}>총 합계</span>
+                  <span style={{fontSize:16,fontWeight:700,color:"#27ae60"}}>{total.toFixed(1)}시간</span>
                 </div>
               </div>
-            ); })
+            </div>
+          )}
+          {Object.keys(byMonth).length===0?(<p style={{color:t.sub,fontSize:14,textAlign:"center",padding:"20px 0"}}>기록된 봉사 활동이 없어요.</p>):(
+            Object.entries(byMonth).sort().map(([ym,entries])=>{
+              const [y,m]=ym.split("-");
+              const monthTotal=entries.reduce((s,l)=>s+(l.hours||0),0);
+              return(
+                <div key={ym} style={{marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <h4 style={{margin:0,fontSize:13,color:t.accent}}>{y}년 {parseInt(m)}월</h4>
+                    <span style={{fontSize:13,fontWeight:700}}>{monthTotal.toFixed(1)}시간</span>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {entries.map((l,i)=>(
+                      <div key={i} style={{background:t.bg,borderRadius:10,padding:"10px 14px",border:`1px solid ${t.border}`}}>
+                        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+                          <div style={{flex:1}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                              <span style={{fontSize:11,color:t.sub}}>{l.date}</span>
+                              <span style={{fontSize:13,fontWeight:700}}>{l.org}</span>
+                            </div>
+                            {l.desc&&<div style={{fontSize:11,color:t.sub,marginBottom:4}}>{l.desc}</div>}
+                            {l.fileName&&<button onClick={()=>setPreviewFile(l)} style={{background:"none",border:`1px solid ${t.border}`,borderRadius:5,padding:"2px 8px",color:t.accent,fontSize:10,cursor:"pointer"}}>📎 {l.fileName}</button>}
+                          </div>
+                          <span style={{fontSize:14,fontWeight:700,color:"#27ae60",whiteSpace:"nowrap"}}>{(l.hours||0).toFixed(1)}h</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
-      {previewFile&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}} onClick={()=>setPreviewFile(null)}>
-        <div style={{maxWidth:"90vw",maxHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",gap:12}} onClick={e=>e.stopPropagation()}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{color:"#e8e6f0",fontSize:14}}>{previewFile.fileName}</span><button onClick={()=>setPreviewFile(null)} style={{background:"#2a2a4a",border:"none",color:"#e8e6f0",padding:"4px 12px",borderRadius:6,cursor:"pointer",fontSize:12}}>닫기</button></div>
-          {previewFile.fileData?(previewFile.fileData.startsWith("data:image")?<img src={previewFile.fileData} alt="증빙서류" style={{maxWidth:"85vw",maxHeight:"80vh",borderRadius:8,objectFit:"contain"}}/>:previewFile.fileData.startsWith("data:application/pdf")?<iframe src={previewFile.fileData} style={{width:"80vw",height:"80vh",borderRadius:8,border:"none"}} title="PDF 미리보기"/>:<div style={{color:"#a0a0c0",fontSize:14}}>미리보기를 지원하지 않는 파일 형식이에요.</div>):(<div style={{color:"#a0a0c0",fontSize:13,padding:20,background:"#1a1a2e",borderRadius:10}}>파일 데이터가 없어요.</div>)}
+      {previewFile&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}} onClick={()=>setPreviewFile(null)}>
+          <div style={{maxWidth:"90vw",maxHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",gap:12}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{color:"#e8e6f0",fontSize:14}}>{previewFile.fileName}</span><button onClick={()=>setPreviewFile(null)} style={{background:"#2a2a4a",border:"none",color:"#e8e6f0",padding:"4px 12px",borderRadius:6,cursor:"pointer",fontSize:12}}>닫기</button></div>
+            {previewFile.fileData?(previewFile.fileData.startsWith("data:image")?<img src={previewFile.fileData} alt="증빙서류" style={{maxWidth:"85vw",maxHeight:"80vh",borderRadius:8,objectFit:"contain"}}/>:previewFile.fileData.startsWith("data:application/pdf")?<iframe src={previewFile.fileData} style={{width:"80vw",height:"80vh",borderRadius:8,border:"none"}} title="PDF 미리보기"/>:<div style={{color:"#a0a0c0",fontSize:14}}>미리보기를 지원하지 않는 파일 형식이에요.</div>):(<div style={{color:"#a0a0c0",fontSize:13,padding:20,background:"#1a1a2e",borderRadius:10}}>파일 데이터가 없어요.</div>)}
+          </div>
         </div>
-      </div>)}
+      )}
     </div>
   );
 }
 
+// ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const today=new Date();
   const [loaded,setLoaded]=useState(false);
@@ -375,31 +479,45 @@ export default function App() {
   const [showVolReport,setShowVolReport]=useState(false);
   const [volForm,setVolForm]=useState({date:"",org:"",desc:"",hours:"",fileName:"",fileData:null});
   const [volOpen,setVolOpen]=useState(true);
+  const [deletedBaseEvents,setDeletedBaseEvents]=useState([]);
 
   useEffect(()=>{
     async function load(){
-      const [th,name,gr,bd,cats,active,events,vlogs]=await Promise.all([storageLoad("theme"),storageLoad("calendarName"),storageLoad("grade"),storageLoad("birthdate"),storageLoad("categories"),storageLoad("activeCategories"),storageLoad("customEvents"),storageLoad("volunteerLogs")]);
-      if(th) setTheme(th); if(name) setCalendarName(name); if(gr) setGrade(gr); if(bd) setBirthdate(bd);
-      if(cats) setCategories(cats); if(active) setActiveCategories(active); if(events) setCustomEvents(events); if(vlogs) setVolunteerLogs(vlogs);
-      setShowSetup(!bd); setLoaded(true);
+      const [th,name,gr,bd,cats,active,events,vlogs,delBase]=await Promise.all([
+        storageLoad("theme"),storageLoad("calendarName"),storageLoad("grade"),storageLoad("birthdate"),
+        storageLoad("categories"),storageLoad("activeCategories"),storageLoad("customEvents"),storageLoad("volunteerLogs"),
+        storageLoad("deletedBaseEvents"),
+      ]);
+      if(th)     setTheme(th);
+      if(name)   setCalendarName(name);
+      if(gr)     setGrade(gr);
+      if(bd)     setBirthdate(bd);
+      if(cats)   setCategories(cats);
+      if(active) setActiveCategories(active);
+      if(events) setCustomEvents(events);
+      if(vlogs)  setVolunteerLogs(vlogs);
+      if(delBase) setDeletedBaseEvents(delBase);
+      setShowSetup(!bd);
+      setLoaded(true);
     }
     load();
   },[]);
 
-  const t=theme;
-  const fontStyle=FONTS.find(f=>f.id===t.font)?.style||FONTS[0].style;
+  const t = theme;
+  const fontStyle = FONTS.find(f=>f.id===t.font)?.style || FONTS[0].style;
+
   function flash(){ setSaveIndicator("✓ 저장됨"); setTimeout(()=>setSaveIndicator(""),2000); }
-  function saveTheme(v){ setTheme(v); storageSave("theme",v); flash(); }
-  function saveCalName(v){ setCalendarName(v); storageSave("calendarName",v); }
-  function saveGrade(v){ setGrade(v); storageSave("grade",v); }
-  function saveBirthdate(v){ setBirthdate(v); storageSave("birthdate",v); }
-  function saveCategories(v){ setCategories(v); storageSave("categories",v); }
-  function saveActiveCats(fn){ setActiveCategories(prev=>{ const next=typeof fn==="function"?fn(prev):fn; storageSave("activeCategories",next); return next; }); }
+  function saveTheme(v)       { setTheme(v);      storageSave("theme",v);            flash(); }
+  function saveCalName(v)     { setCalendarName(v); storageSave("calendarName",v);  }
+  function saveGrade(v)       { setGrade(v);      storageSave("grade",v);            }
+  function saveBirthdate(v)   { setBirthdate(v);  storageSave("birthdate",v);        }
+  function saveCategories(v)  { setCategories(v); storageSave("categories",v);       }
+  function saveActiveCats(fn) { setActiveCategories(prev=>{ const next=typeof fn==="function"?fn(prev):fn; storageSave("activeCategories",next); return next; }); }
   function saveCustomEvents(fn){ setCustomEvents(prev=>{ const next=typeof fn==="function"?fn(prev):fn; storageSave("customEvents",next); return next; }); }
-  function saveVolLogs(fn){ setVolunteerLogs(prev=>{ const next=typeof fn==="function"?fn(prev):fn; storageSave("volunteerLogs",next.map(l=>({...l,fileData:null}))); return next; }); }
+  function saveVolLogs(fn)    { setVolunteerLogs(prev=>{ const next=typeof fn==="function"?fn(prev):fn; storageSave("volunteerLogs",next.map(l=>({...l,fileData:null}))); return next; }); }
 
   const currentAge=calcAge(birthdate);
-  const allEvents=[...BASE_EVENTS,...customEvents];
+  const allEvents=[...BASE_EVENTS.filter(e=>!deletedBaseEvents.includes(`${e.month}-${e.day}-${e.title}`)),...customEvents];
   const eventsThisMonth=allEvents.filter(e=>e.month===currentMonth);
   const daysInMonth=getDaysInMonth(currentYear,currentMonth);
   const firstDay=getFirstDayOfMonth(currentYear,currentMonth);
@@ -409,17 +527,38 @@ export default function App() {
   function getCat(key){ return categories[key]||{bg:"#f0f0f0",border:"#999",dot:"#999",emoji:"📌",label:key}; }
   function getEventsOnDay(day){ return eventsThisMonth.filter(e=>e.day===day&&activeCategories.includes(e.category)); }
   function toggleCat(cat){ saveActiveCats(prev=>prev.includes(cat)?prev.filter(c=>c!==cat):[...prev,cat]); }
-  function addCustomEvent(){ if(!newEvent.title) return; saveCustomEvents(prev=>[...prev,{...newEvent,month:currentMonth,day:parseInt(newEvent.day)}]); setNewEvent({title:"",category:Object.keys(categories)[0]||"general",desc:"",day:selectedDay||1}); setShowAddModal(false); flash(); }
+
+  function addCustomEvent(){
+    if(!newEvent.title) return;
+    saveCustomEvents(prev=>[...prev,{...newEvent,month:currentMonth,day:parseInt(newEvent.day)}]);
+    setNewEvent({title:"",category:Object.keys(categories)[0]||"general",desc:"",day:selectedDay||1});
+    setShowAddModal(false); flash();
+  }
   function deleteCustomEvent(idx){ saveCustomEvents(prev=>prev.filter((_,i)=>i!==idx)); flash(); }
+  function deleteBaseEvent(ev){
+    const key=`${ev.month}-${ev.day}-${ev.title}`;
+    const next=[...deletedBaseEvents, key];
+    setDeletedBaseEvents(next);
+    storageSave("deletedBaseEvents", next);
+    flash();
+  }
+
+
   function saveName(){ if(!tempName.trim()) return; saveCalName(tempName.trim()); setEditingName(false); flash(); }
-  function handleSaveCategories(newCats){ saveCategories(newCats); saveActiveCats(prev=>{ const valid=prev.filter(k=>newCats[k]); const added=Object.keys(newCats).filter(k=>!prev.includes(k)); return [...valid,...added]; }); setShowCatModal(false); flash(); }
+  function handleSaveCategories(newCats){
+    saveCategories(newCats);
+    saveActiveCats(prev=>{ const valid=prev.filter(k=>newCats[k]); const added=Object.keys(newCats).filter(k=>!prev.includes(k)); return [...valid,...added]; });
+    setShowCatModal(false); flash();
+  }
   function handleAddFromLinks(events){ saveCustomEvents(prev=>[...prev,...events]); flash(); }
+
   function handleVolFile(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>setVolForm(f=>({...f,fileName:file.name,fileData:ev.target.result})); reader.readAsDataURL(file); }
   function addVolLog(){ if(!volForm.date||!volForm.org||!volForm.hours) return; const entry={id:Date.now(),date:volForm.date,org:volForm.org,desc:volForm.desc,hours:parseFloat(volForm.hours)||0,fileName:volForm.fileName,fileData:volForm.fileData}; saveVolLogs(prev=>[...prev,entry].sort((a,b)=>a.date.localeCompare(b.date))); setVolForm({date:"",org:"",desc:"",hours:"",fileName:"",fileData:null}); flash(); }
   function deleteVolLog(id){ saveVolLogs(prev=>prev.filter(l=>l.id!==id)); flash(); }
 
   const totalVolHours=volunteerLogs.reduce((s,l)=>s+(l.hours||0),0);
   const currentMonthVolHours=volunteerLogs.filter(l=>{ const d=new Date(l.date); return d.getFullYear()===currentYear&&d.getMonth()+1===currentMonth; }).reduce((s,l)=>s+(l.hours||0),0);
+
   const selectedEvents=selectedDay?getEventsOnDay(selectedDay):[];
   const gradeLabel=grade?`${grade}학년`:"";
   const birthdateLabel=birthdate?`${new Date(birthdate).toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric"})} 생`:"";
@@ -430,17 +569,24 @@ export default function App() {
 
   return(
     <div style={{minHeight:"100vh",background:t.bg,color:t.text,fontFamily:fontStyle,transition:"background 0.3s, color 0.3s"}}>
+
+      {/* Header */}
       <div style={{background:t.headerBg,padding:"18px 24px",borderBottom:`1px solid ${t.border}`,boxShadow:`0 2px 12px rgba(0,0,0,0.15)`}}>
         <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
           <div>
-            {editingName?(<div style={{display:"flex",alignItems:"center",gap:8}}>
-              <input autoFocus value={tempName} onChange={e=>setTempName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveName();if(e.key==="Escape")setEditingName(false);}} style={{fontSize:20,fontWeight:700,background:"transparent",border:"none",borderBottom:`2px solid ${t.accent}`,color:t.text,outline:"none",width:200,padding:"2px 4px",fontFamily:fontStyle}}/>
-              <button onClick={saveName} style={{background:t.accent,border:"none",color:"#fff",padding:"4px 12px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600}}>저장</button>
-              <button onClick={()=>setEditingName(false)} style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12}}>취소</button>
-            </div>):(<div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>{setTempName(calendarName);setEditingName(true);}}>
-              <h1 style={{margin:0,fontSize:22,fontWeight:700,color:t.text}}>🎓 {calendarName}</h1>
-              <span style={{fontSize:13,color:t.sub}}>✏️</span>
-            </div>)}
+            {editingName?(
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <input autoFocus value={tempName} onChange={e=>setTempName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveName();if(e.key==="Escape")setEditingName(false);}}
+                  style={{fontSize:20,fontWeight:700,background:"transparent",border:"none",borderBottom:`2px solid ${t.accent}`,color:t.text,outline:"none",width:200,padding:"2px 4px",fontFamily:fontStyle}}/>
+                <button onClick={saveName} style={{background:t.accent,border:"none",color:"#fff",padding:"4px 12px",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600}}>저장</button>
+                <button onClick={()=>setEditingName(false)} style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"4px 10px",borderRadius:6,cursor:"pointer",fontSize:12}}>취소</button>
+              </div>
+            ):(
+              <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>{setTempName(calendarName);setEditingName(true);}}>
+                <h1 style={{margin:0,fontSize:22,fontWeight:700,color:t.text}}>🎓 {calendarName}</h1>
+                <span style={{fontSize:13,color:t.sub}}>✏️</span>
+              </div>
+            )}
             <div style={{display:"flex",alignItems:"center",gap:10,marginTop:3}}>
               {(grade||birthdate)&&<p style={{margin:0,fontSize:12,color:t.sub}}>{gradeLabel} {birthdateLabel} {ageLabel}</p>}
               {saveIndicator&&<span style={{fontSize:11,color:"#27ae60",fontWeight:600}}>{saveIndicator}</span>}
@@ -448,154 +594,198 @@ export default function App() {
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <button onClick={()=>setShowLinkModal(true)} style={{background:t.accent,border:"none",color:"#fff",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>🔗 링크로 추가</button>
-            <button onClick={()=>setShowCatModal(true)} style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12}}>🗂️ 카테고리</button>
-            <button onClick={()=>setShowSetup(true)} style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12}}>⚙️ 설정</button>
+            <button onClick={()=>setShowCatModal(true)}  style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12}}>🗂️ 카테고리</button>
+            <button onClick={()=>setShowSetup(true)}     style={{background:"transparent",border:`1px solid ${t.border}`,color:t.sub,padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12}}>⚙️ 설정</button>
           </div>
         </div>
       </div>
 
       <div style={{maxWidth:900,margin:"0 auto",padding:"18px 16px"}}>
+
+        {/* Modals */}
         {showSetup&&<SettingsModal theme={t} grade={grade} birthdate={birthdate} currentAge={currentAge} onSaveTheme={saveTheme} onSaveGrade={saveGrade} onSaveBirthdate={saveBirthdate} onClose={()=>setShowSetup(false)}/>}
         {showCatModal&&<CategoryModal categories={categories} theme={t} onClose={()=>setShowCatModal(false)} onSave={handleSaveCategories}/>}
         {showLinkModal&&<LinkImportModal categories={categories} theme={t} onClose={()=>setShowLinkModal(false)} onAdd={handleAddFromLinks}/>}
         {showVolReport&&<VolunteerReportModal logs={volunteerLogs} grade={grade} theme={t} onClose={()=>setShowVolReport(false)}/>}
 
+        {/* Category Pills */}
         <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:14}}>
-          {Object.entries(categories).map(([key,val])=>(<button key={key} onClick={()=>toggleCat(key)} style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${val.border}`,background:activeCategories.includes(key)?val.bg:"transparent",color:activeCategories.includes(key)?"#1a1a2e":t.sub,fontSize:12,cursor:"pointer",fontWeight:600,transition:"all 0.15s"}}>{val.emoji} {val.label}</button>))}
+          {Object.entries(categories).map(([key,val])=>(
+            <button key={key} onClick={()=>toggleCat(key)} style={{padding:"5px 12px",borderRadius:20,border:`1.5px solid ${val.border}`,background:activeCategories.includes(key)?val.bg:"transparent",color:activeCategories.includes(key)?"#1a1a2e":t.sub,fontSize:12,cursor:"pointer",fontWeight:600,transition:"all 0.15s"}}>
+              {val.emoji} {val.label}
+            </button>
+          ))}
         </div>
 
+        {/* Month Nav */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <button onClick={prevMonth} style={{background:t.calBg,border:`1px solid ${t.border}`,color:t.text,width:34,height:34,borderRadius:8,cursor:"pointer",fontSize:18}}>‹</button>
           <h2 style={{margin:0,fontSize:20,fontWeight:700,color:t.text}}>{currentYear}년 {MONTHS[currentMonth-1]}</h2>
           <button onClick={nextMonth} style={{background:t.calBg,border:`1px solid ${t.border}`,color:t.text,width:34,height:34,borderRadius:8,cursor:"pointer",fontSize:18}}>›</button>
         </div>
 
+        {/* Calendar Grid */}
         <div style={{background:t.calBg,borderRadius:16,overflow:"hidden",border:`1px solid ${t.border}`,marginBottom:18}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:`1px solid ${t.border}`}}>
-            {DAYS_OF_WEEK.map((d,i)=>(<div key={d} style={{padding:"8px 0",textAlign:"center",fontSize:11,fontWeight:700,color:i===0?"#e74c3c":i===6?"#5dade2":t.sub}}>{d}</div>))}
+            {DAYS_OF_WEEK.map((d,i)=>(
+              <div key={d} style={{padding:"8px 0",textAlign:"center",fontSize:11,fontWeight:700,color:i===0?"#e74c3c":i===6?"#5dade2":t.sub}}>{d}</div>
+            ))}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
             {Array.from({length:firstDay}).map((_,i)=>(<div key={`e${i}`} style={{minHeight:76,borderRight:`1px solid ${t.cell}`,borderBottom:`1px solid ${t.cell}`,overflow:"hidden"}}/>))}
             {Array.from({length:daysInMonth}).map((_,i)=>{
-              const day=i+1; const dayEvents=getEventsOnDay(day);
+              const day=i+1;
+              const dayEvents=getEventsOnDay(day);
               const isToday=day===today.getDate()&&currentMonth===today.getMonth()+1&&currentYear===today.getFullYear();
               const isSelected=selectedDay===day;
               const dayVolHours=volunteerLogs.filter(l=>{ const d=new Date(l.date); return d.getFullYear()===currentYear&&d.getMonth()+1===currentMonth&&d.getDate()===day; }).reduce((s,l)=>s+(l.hours||0),0);
-              return(<div key={day} onClick={()=>setSelectedDay(isSelected?null:day)} style={{minHeight:76,borderRight:`1px solid ${t.cell}`,borderBottom:`1px solid ${t.cell}`,padding:"5px 4px 3px",cursor:"pointer",background:isSelected?`rgba(${hexToRgb(t.accent)},0.12)`:t.calBg,transition:"background 0.15s",overflow:"hidden",boxSizing:"border-box"}}>
-                <div style={{width:24,height:24,borderRadius:"50%",background:isToday?t.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:isToday?700:400,color:isToday?"#fff":t.text,marginBottom:2}}>{day}</div>
-                <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  {dayEvents.slice(0,2).map((ev,idx)=>{ const c=getCat(ev.category); return(<div key={idx} style={{fontSize:9,padding:"2px 3px",borderRadius:3,background:c.bg,color:"#1a1a2e",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderLeft:`2px solid ${c.border}`,maxWidth:"100%"}}>{c.emoji} {ev.title}</div>); })}
-                  {dayEvents.length>2&&<div style={{fontSize:9,color:t.sub}}>+{dayEvents.length-2}개</div>}
-                  {dayVolHours>0&&<div style={{fontSize:9,padding:"1px 3px",borderRadius:3,background:"rgba(39,174,96,0.15)",color:"#27ae60",fontWeight:700,borderLeft:"2px solid #27ae60"}}>🤝 {dayVolHours}h</div>}
+              return(
+                <div key={day} onClick={()=>setSelectedDay(isSelected?null:day)}
+                  style={{minHeight:76,borderRight:`1px solid ${t.cell}`,borderBottom:`1px solid ${t.cell}`,padding:"5px 4px 3px",cursor:"pointer",background:isSelected?`rgba(${hexToRgb(t.accent)},0.12)`:t.calBg,transition:"background 0.15s",overflow:"hidden",boxSizing:"border-box"}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",background:isToday?t.accent:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:isToday?700:400,color:isToday?"#fff":t.text,marginBottom:2}}>
+                    {day}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                    {dayEvents.slice(0,2).map((ev,idx)=>{ const c=getCat(ev.category); return(<div key={idx} style={{fontSize:9,padding:"2px 3px",borderRadius:3,background:c.bg,color:"#1a1a2e",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",borderLeft:`2px solid ${c.border}`,maxWidth:"100%"}}>{c.emoji} {ev.title}</div>); })}
+                    {dayEvents.length>2&&<div style={{fontSize:9,color:t.sub}}>+{dayEvents.length-2}개</div>}
+                    {dayVolHours>0&&<div style={{fontSize:9,padding:"1px 3px",borderRadius:3,background:"rgba(39,174,96,0.15)",color:"#27ae60",fontWeight:700,borderLeft:"2px solid #27ae60"}}>🤝 {dayVolHours}h</div>}
+                  </div>
                 </div>
-              </div>);
+              );
             })}
           </div>
         </div>
 
-        {selectedDay&&(<div style={{background:t.calBg,borderRadius:12,border:`1px solid ${t.border}`,padding:16,marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <h3 style={{margin:0,fontSize:15,color:t.text}}>{currentMonth}월 {selectedDay}일 일정</h3>
-            <button onClick={()=>{setNewEvent(e=>({...e,day:selectedDay}));setShowAddModal(true);}} style={{background:t.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>+ 추가</button>
-          </div>
-          {selectedEvents.length===0?(<p style={{color:t.sub,fontSize:13,margin:0}}>등록된 일정이 없어요.</p>):(
-            <div style={{display:"flex",flexDirection:"column",gap:7}}>
-              {selectedEvents.map((ev,idx)=>{
-                const c=getCat(ev.category);
-                const ageOnDay=birthdate?calcAgeOnDate(birthdate,`${currentYear}-${String(currentMonth).padStart(2,"0")}-${String(selectedDay).padStart(2,"0")}`):null;
-                const customIdx=customEvents.findIndex(ce=>ce.title===ev.title&&ce.month===ev.month&&ce.day===ev.day&&ce.category===ev.category);
-                return(<div key={idx} style={{padding:"10px 14px",borderRadius:10,background:c.bg,borderLeft:`3px solid ${c.border}`}}>
-                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#1a1a2e",marginBottom:2}}>{c.emoji} {ev.title}</div>
-                      {ev.desc&&<div style={{fontSize:11,color:"#4a4a6a"}}>{ev.desc}</div>}
-                      {ev.url&&<a href={ev.url} target="_blank" rel="noreferrer" style={{fontSize:10,color:t.accent,display:"block",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {ev.url}</a>}
-                      {ageOnDay!==null&&<div style={{fontSize:10,color:"#7a7a8a",marginTop:3}}>📅 이 날 기준 {ageOnDay}세</div>}
-                    </div>
-                    {customIdx>=0&&<button onClick={()=>deleteCustomEvent(customIdx)} style={{background:"none",border:"none",color:"#e74c3c",fontSize:14,cursor:"pointer",padding:"0 2px",flexShrink:0}}>✕</button>}
-                  </div>
-                </div>);
-              })}
+        {/* Selected Day Panel */}
+        {selectedDay&&(
+          <div style={{background:t.calBg,borderRadius:12,border:`1px solid ${t.border}`,padding:16,marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:15,color:t.text}}>{currentMonth}월 {selectedDay}일 일정</h3>
+              <button onClick={()=>{setNewEvent(e=>({...e,day:selectedDay}));setShowAddModal(true);}} style={{background:t.accent,border:"none",color:"#fff",padding:"5px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>+ 추가</button>
             </div>
-          )}
-        </div>)}
+            {selectedEvents.length===0?(<p style={{color:t.sub,fontSize:13,margin:0}}>등록된 일정이 없어요.</p>):(
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {selectedEvents.map((ev,idx)=>{
+                  const c=getCat(ev.category);
+                  const ageOnDay=birthdate?calcAgeOnDate(birthdate,`${currentYear}-${String(currentMonth).padStart(2,"0")}-${String(selectedDay).padStart(2,"0")}`):null;
+                  const customIdx=customEvents.findIndex(ce=>ce.title===ev.title&&ce.month===ev.month&&ce.day===ev.day&&ce.category===ev.category);
+                  return(
+                    <div key={idx} style={{padding:"10px 14px",borderRadius:10,background:c.bg,borderLeft:`3px solid ${c.border}`}}>
+                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:700,color:"#1a1a2e",marginBottom:2}}>{c.emoji} {ev.title}</div>
+                          {ev.desc&&<div style={{fontSize:11,color:"#4a4a6a"}}>{ev.desc}</div>}
+                          {ev.url&&<a href={ev.url} target="_blank" rel="noreferrer" style={{fontSize:10,color:t.accent,display:"block",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {ev.url}</a>}
+                          {ageOnDay!==null&&<div style={{fontSize:10,color:"#7a7a8a",marginTop:3}}>📅 이 날 기준 {ageOnDay}세</div>}
+                        </div>
+                        <button onClick={()=>{ if(customIdx>=0) deleteCustomEvent(customIdx); else deleteBaseEvent(ev); }} style={{background:"none",border:"none",color:"#e74c3c",fontSize:14,cursor:"pointer",padding:"0 2px",flexShrink:0}}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* Monthly Summary */}
         <div style={{background:t.calBg,borderRadius:12,border:`1px solid ${t.border}`,padding:16,marginBottom:18}}>
           <h3 style={{margin:"0 0 10px",fontSize:14,color:t.sub}}>📋 이번 달 전체 일정</h3>
           {eventsThisMonth.filter(e=>activeCategories.includes(e.category)).length===0?(<p style={{color:t.sub,fontSize:13,margin:0,opacity:0.6}}>이번 달 등록된 일정이 없어요.</p>):(
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {eventsThisMonth.filter(e=>activeCategories.includes(e.category)).sort((a,b)=>a.day-b.day).map((ev,idx)=>{ const c=getCat(ev.category); return(<div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 10px",borderRadius:8,background:t.bg}}>
-                <div style={{minWidth:28,textAlign:"center",fontSize:12,fontWeight:700,color:t.accent}}>{ev.day}일</div>
-                <div style={{width:7,height:7,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
-                <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12,color:t.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.emoji} {ev.title}</div>{ev.desc&&<div style={{fontSize:10,color:t.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.desc}</div>}</div>
-              </div>); })}
+              {eventsThisMonth.filter(e=>activeCategories.includes(e.category)).sort((a,b)=>a.day-b.day).map((ev,idx)=>{
+                const c=getCat(ev.category);
+                return(<div key={idx} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 10px",borderRadius:8,background:t.bg}}>
+                  <div style={{minWidth:28,textAlign:"center",fontSize:12,fontWeight:700,color:t.accent}}>{ev.day}일</div>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:c.dot,flexShrink:0}}/>
+                  <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:12,color:t.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.emoji} {ev.title}</div>{ev.desc&&<div style={{fontSize:10,color:t.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.desc}</div>}</div>
+                </div>);
+              })}
             </div>
           )}
         </div>
 
+        {/* ── Volunteer Section ─────────────────────────────────────────────── */}
         <div style={{background:t.calBg,borderRadius:16,border:"1px solid #27ae60",overflow:"hidden",marginBottom:18}}>
           <div style={{background:`rgba(39,174,96,0.08)`,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",borderBottom:volOpen?`1px solid rgba(39,174,96,0.2)`:"none"}} onClick={()=>setVolOpen(v=>!v)}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <span style={{fontSize:18}}>🤝</span>
-              <div><div style={{fontSize:15,fontWeight:700,color:t.text}}>봉사 활동 기록</div><div style={{fontSize:11,color:"#6a8a6a",marginTop:1}}>총 {totalVolHours.toFixed(1)}시간 · {volunteerLogs.length}건{currentMonthVolHours>0?` · 이번 달 ${currentMonthVolHours.toFixed(1)}h`:""}</div></div>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:t.text}}>봉사 활동 기록</div>
+                <div style={{fontSize:11,color:"#6a8a6a",marginTop:1}}>총 {totalVolHours.toFixed(1)}시간 · {volunteerLogs.length}건{currentMonthVolHours>0?` · 이번 달 ${currentMonthVolHours.toFixed(1)}h`:""}</div>
+              </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <button onClick={e=>{e.stopPropagation();setShowVolReport(true);}} style={{background:"#27ae60",border:"none",color:"#fff",padding:"5px 12px",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>📊 보고서</button>
               <span style={{color:"#27ae60",fontSize:16}}>{volOpen?"▲":"▼"}</span>
             </div>
           </div>
-          {volOpen&&(<div style={{padding:"16px 18px"}}>
-            <div style={{background:t.bg,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${t.border}`}}>
-              <div style={{fontSize:12,color:t.sub,marginBottom:12,fontWeight:600}}>+ 봉사 활동 추가</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-                <div><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>날짜 *</label><input type="date" value={volForm.date} onChange={e=>setVolForm(f=>({...f,date:e.target.value}))} style={{...inp,fontSize:13}}/></div>
-                <div><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>시간 (h) *</label><input type="number" value={volForm.hours} onChange={e=>setVolForm(f=>({...f,hours:e.target.value}))} placeholder="예: 3.5" min="0" step="0.5" style={{...inp,fontSize:13}}/></div>
+          {volOpen&&(
+            <div style={{padding:"16px 18px"}}>
+              <div style={{background:t.bg,borderRadius:12,padding:16,marginBottom:16,border:`1px solid ${t.border}`}}>
+                <div style={{fontSize:12,color:t.sub,marginBottom:12,fontWeight:600}}>+ 봉사 활동 추가</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>날짜 *</label><input type="date" value={volForm.date} onChange={e=>setVolForm(f=>({...f,date:e.target.value}))} style={{...inp,fontSize:13}}/></div>
+                  <div><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>시간 (h) *</label><input type="number" value={volForm.hours} onChange={e=>setVolForm(f=>({...f,hours:e.target.value}))} placeholder="예: 3.5" min="0" step="0.5" style={{...inp,fontSize:13}}/></div>
+                </div>
+                <div style={{marginBottom:10}}><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>기관/단체명 *</label><input value={volForm.org} onChange={e=>setVolForm(f=>({...f,org:e.target.value}))} placeholder="예: 지역 도서관" style={{...inp,fontSize:13}}/></div>
+                <div style={{marginBottom:12}}><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>활동 내용</label><input value={volForm.desc} onChange={e=>setVolForm(f=>({...f,desc:e.target.value}))} placeholder="예: 독서 멘토링, 음식 배분" style={{...inp,fontSize:13}}/></div>
+                <div style={{marginBottom:14}}>
+                  <label style={{display:"block",fontSize:11,color:t.sub,marginBottom:6}}>📎 증빙서류 (이미지/PDF)</label>
+                  <label style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",background:t.calBg,border:`1px dashed ${t.border}`,borderRadius:8,cursor:"pointer"}}>
+                    <span style={{fontSize:18}}>📁</span>
+                    <div><div style={{fontSize:12,color:t.text,fontWeight:600}}>{volForm.fileName||"파일 선택 (클릭)"}</div><div style={{fontSize:10,color:t.sub}}>JPG, PNG, PDF 지원</div></div>
+                    <input type="file" accept="image/*,.pdf" onChange={handleVolFile} style={{display:"none"}}/>
+                  </label>
+                  {volForm.fileData&&volForm.fileData.startsWith("data:image")&&(<img src={volForm.fileData} alt="미리보기" style={{marginTop:8,maxHeight:100,maxWidth:"100%",borderRadius:8,objectFit:"cover",border:`1px solid ${t.border}`}}/>)}
+                  {volForm.fileData&&volForm.fileData.startsWith("data:application/pdf")&&(<div style={{marginTop:8,padding:"6px 10px",background:"rgba(39,174,96,0.1)",borderRadius:6,fontSize:11,color:"#27ae60"}}>📄 PDF 첨부됨: {volForm.fileName}</div>)}
+                </div>
+                <button onClick={addVolLog} disabled={!volForm.date||!volForm.org||!volForm.hours}
+                  style={{width:"100%",padding:"10px",background:(!volForm.date||!volForm.org||!volForm.hours)?t.bg:"linear-gradient(135deg,#27ae60,#1e8449)",border:`1px solid ${(!volForm.date||!volForm.org||!volForm.hours)?t.border:"#27ae60"}`,borderRadius:8,color:(!volForm.date||!volForm.org||!volForm.hours)?t.sub:"#fff",fontWeight:600,cursor:(!volForm.date||!volForm.org||!volForm.hours)?"default":"pointer",fontSize:13}}>
+                  봉사 기록 저장
+                </button>
               </div>
-              <div style={{marginBottom:10}}><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>기관/단체명 *</label><input value={volForm.org} onChange={e=>setVolForm(f=>({...f,org:e.target.value}))} placeholder="예: 지역 도서관" style={{...inp,fontSize:13}}/></div>
-              <div style={{marginBottom:12}}><label style={{display:"block",fontSize:11,color:t.sub,marginBottom:4}}>활동 내용</label><input value={volForm.desc} onChange={e=>setVolForm(f=>({...f,desc:e.target.value}))} placeholder="예: 독서 멘토링" style={{...inp,fontSize:13}}/></div>
-              <div style={{marginBottom:14}}>
-                <label style={{display:"block",fontSize:11,color:t.sub,marginBottom:6}}>📎 증빙서류 (이미지/PDF)</label>
-                <label style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",background:t.calBg,border:`1px dashed ${t.border}`,borderRadius:8,cursor:"pointer"}}>
-                  <span style={{fontSize:18}}>📁</span>
-                  <div><div style={{fontSize:12,color:t.text,fontWeight:600}}>{volForm.fileName||"파일 선택 (클릭)"}</div><div style={{fontSize:10,color:t.sub}}>JPG, PNG, PDF 지원</div></div>
-                  <input type="file" accept="image/*,.pdf" onChange={handleVolFile} style={{display:"none"}}/>
-                </label>
-                {volForm.fileData&&volForm.fileData.startsWith("data:image")&&(<img src={volForm.fileData} alt="미리보기" style={{marginTop:8,maxHeight:100,maxWidth:"100%",borderRadius:8,objectFit:"cover",border:`1px solid ${t.border}`}}/>)}
-                {volForm.fileData&&volForm.fileData.startsWith("data:application/pdf")&&(<div style={{marginTop:8,padding:"6px 10px",background:"rgba(39,174,96,0.1)",borderRadius:6,fontSize:11,color:"#27ae60"}}>📄 PDF 첨부됨: {volForm.fileName}</div>)}
-              </div>
-              <button onClick={addVolLog} disabled={!volForm.date||!volForm.org||!volForm.hours} style={{width:"100%",padding:"10px",background:(!volForm.date||!volForm.org||!volForm.hours)?t.bg:"linear-gradient(135deg,#27ae60,#1e8449)",border:`1px solid ${(!volForm.date||!volForm.org||!volForm.hours)?t.border:"#27ae60"}`,borderRadius:8,color:(!volForm.date||!volForm.org||!volForm.hours)?t.sub:"#fff",fontWeight:600,cursor:(!volForm.date||!volForm.org||!volForm.hours)?"default":"pointer",fontSize:13}}>봉사 기록 저장</button>
+              {volunteerLogs.length===0?(<p style={{color:t.sub,fontSize:13,textAlign:"center",padding:"10px 0",opacity:0.6}}>아직 기록된 봉사 활동이 없어요.</p>):(
+                <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                  {[...volunteerLogs].reverse().slice(0,10).map((l)=>(
+                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:t.bg,borderRadius:10,border:`1px solid ${t.border}`}}>
+                      <div style={{minWidth:60,textAlign:"center"}}><div style={{fontSize:10,color:t.sub}}>{l.date}</div><div style={{fontSize:15,fontWeight:700,color:"#27ae60"}}>{(l.hours||0).toFixed(1)}h</div></div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,color:t.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.org}</div>
+                        {l.desc&&<div style={{fontSize:11,color:t.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.desc}</div>}
+                        {l.fileName&&<span style={{fontSize:10,color:"#3a8a3a"}}>📎 {l.fileName}</span>}
+                      </div>
+                      <button onClick={()=>deleteVolLog(l.id)} style={{background:"none",border:"none",color:"#e74c3c",fontSize:14,cursor:"pointer",flexShrink:0}}>✕</button>
+                    </div>
+                  ))}
+                  {volunteerLogs.length>10&&<p style={{fontSize:11,color:t.sub,textAlign:"center",margin:"4px 0 0",opacity:0.7}}>최근 10건 표시 · 전체는 보고서에서</p>}
+                </div>
+              )}
             </div>
-            {volunteerLogs.length===0?(<p style={{color:t.sub,fontSize:13,textAlign:"center",padding:"10px 0",opacity:0.6}}>아직 기록된 봉사 활동이 없어요.</p>):(
-              <div style={{display:"flex",flexDirection:"column",gap:7}}>
-                {[...volunteerLogs].reverse().slice(0,10).map((l)=>(<div key={l.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:t.bg,borderRadius:10,border:`1px solid ${t.border}`}}>
-                  <div style={{minWidth:60,textAlign:"center"}}><div style={{fontSize:10,color:t.sub}}>{l.date}</div><div style={{fontSize:15,fontWeight:700,color:"#27ae60"}}>{(l.hours||0).toFixed(1)}h</div></div>
-                  <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,color:t.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.org}</div>{l.desc&&<div style={{fontSize:11,color:t.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.desc}</div>}{l.fileName&&<span style={{fontSize:10,color:"#3a8a3a"}}>📎 {l.fileName}</span>}</div>
-                  <button onClick={()=>deleteVolLog(l.id)} style={{background:"none",border:"none",color:"#e74c3c",fontSize:14,cursor:"pointer",flexShrink:0}}>✕</button>
-                </div>))}
-                {volunteerLogs.length>10&&<p style={{fontSize:11,color:t.sub,textAlign:"center",margin:"4px 0 0",opacity:0.7}}>최근 10건 표시 · 전체는 보고서에서</p>}
-              </div>
-            )}
-          </div>)}
+          )}
         </div>
 
-        {showAddModal&&(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100}}>
-          <div style={{background:t.calBg,border:`1px solid ${t.border}`,borderRadius:16,padding:28,width:320,boxShadow:"0 20px 60px rgba(0,0,0,0.5)",fontFamily:fontStyle,color:t.text}}>
-            <h3 style={{margin:"0 0 18px",fontSize:17}}>📌 일정 추가</h3>
-            <div style={{marginBottom:11}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>날짜 (일)</label><input type="number" value={newEvent.day} onChange={e=>setNewEvent(v=>({...v,day:e.target.value}))} min="1" max={daysInMonth} style={inp}/></div>
-            <div style={{marginBottom:11}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>제목</label><input value={newEvent.title} onChange={e=>setNewEvent(v=>({...v,title:e.target.value}))} placeholder="예: SAT 시험" style={inp} onKeyDown={e=>e.key==="Enter"&&addCustomEvent()}/></div>
-            <div style={{marginBottom:11}}>
-              <label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>카테고리</label>
-              <select value={newEvent.category} onChange={e=>setNewEvent(v=>({...v,category:e.target.value}))} style={inp}>
-                {Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
-              </select>
-            </div>
-            <div style={{marginBottom:18}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>메모 (선택)</label><input value={newEvent.desc} onChange={e=>setNewEvent(v=>({...v,desc:e.target.value}))} placeholder="간단한 설명" style={inp}/></div>
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>setShowAddModal(false)} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>취소</button>
-              <button onClick={addCustomEvent} style={{flex:1,padding:"10px",background:t.accent,border:"none",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer"}}>저장</button>
+        {/* Add Event Modal */}
+        {showAddModal&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100}}>
+            <div style={{background:t.calBg,border:`1px solid ${t.border}`,borderRadius:16,padding:28,width:320,boxShadow:"0 20px 60px rgba(0,0,0,0.5)",fontFamily:fontStyle,color:t.text}}>
+              <h3 style={{margin:"0 0 18px",fontSize:17}}>📌 일정 추가</h3>
+              <div style={{marginBottom:11}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>날짜 (일)</label><input type="number" value={newEvent.day} onChange={e=>setNewEvent(v=>({...v,day:e.target.value}))} min="1" max={daysInMonth} style={inp}/></div>
+              <div style={{marginBottom:11}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>제목</label><input value={newEvent.title} onChange={e=>setNewEvent(v=>({...v,title:e.target.value}))} placeholder="예: SAT 시험" style={inp} onKeyDown={e=>e.key==="Enter"&&addCustomEvent()}/></div>
+              <div style={{marginBottom:11}}>
+                <label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>카테고리</label>
+                <select value={newEvent.category} onChange={e=>setNewEvent(v=>({...v,category:e.target.value}))} style={inp}>
+                  {Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+                </select>
+              </div>
+              <div style={{marginBottom:18}}><label style={{display:"block",fontSize:12,color:t.sub,marginBottom:4}}>메모 (선택)</label><input value={newEvent.desc} onChange={e=>setNewEvent(v=>({...v,desc:e.target.value}))} placeholder="간단한 설명" style={inp}/></div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setShowAddModal(false)} style={{flex:1,padding:"10px",background:t.bg,border:`1px solid ${t.border}`,borderRadius:8,color:t.sub,cursor:"pointer"}}>취소</button>
+                <button onClick={addCustomEvent} style={{flex:1,padding:"10px",background:t.accent,border:"none",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer"}}>저장</button>
+              </div>
             </div>
           </div>
-        </div>)}
+        )}
       </div>
     </div>
   );
